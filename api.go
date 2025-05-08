@@ -55,11 +55,51 @@ func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (
 }
 
 func (api *API) GetVertexDependants(ctx context.Context, request GetVertexDependantsRequestObject) (GetVertexDependantsResponseObject, error) {
+	pall := false
+	if request.Params.All != nil {
+		pall = *request.Params.All
+	}
+	serviceSub := api.service.GetVertexDependants(request.Label, pall)
+
+	title := "Dependentes de " + request.Label
+	edges := []Edge{}
+	vertices := []Vertex{}
+
+	sub := Subgraph{
+		Title: &title,
+		All:   &serviceSub.All,
+		Principal: &Vertex{
+			Label: &serviceSub.Principal.Label,
+			Class: &serviceSub.Principal.Class,
+		},
+		Edges:    &[]Edge{},
+		Vertices: &[]Vertex{},
+	}
+
+	for _, e := range serviceSub.Edges {
+		edge := Edge{
+			Label:       &e.Label,
+			Class:       &e.Class,
+			Source:      &e.Source,
+			Destination: &e.Destination,
+		}
+		edges = append(edges, edge)
+	}
+
+	for _, v := range serviceSub.Vertices {
+		vertex := Vertex{
+			Label: &v.Label,
+			Class: &v.Class,
+		}
+		vertices = append(vertices, vertex)
+	}
+	sub.Edges = &edges
+	sub.Vertices = &vertices
+
 	return GetVertexDependants200JSONResponse{}, nil
 }
 
 func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDependenciesRequestObject) (GetVertexDependenciesResponseObject, error) {
-
 	pall := false
 	if request.Params.All != nil {
 		pall = *request.Params.All
