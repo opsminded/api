@@ -29,7 +29,18 @@ func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (Summ
 }
 
 func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (GetVertexResponseObject, error) {
-	return GetVertex200JSONResponse{}, nil
+
+	p, err := api.service.GetVertex(request.Label)
+	if err != nil {
+		return nil, err
+	}
+
+	v := Vertex{
+		Label: &p.Label,
+		Class: &p.Class,
+	}
+
+	return GetVertex200JSONResponse(v), nil
 }
 
 func (api *API) GetVertexDependants(ctx context.Context, request GetVertexDependantsRequestObject) (GetVertexDependantsResponseObject, error) {
@@ -65,7 +76,7 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 		edge := Edge{
 			Label:       &e.Label,
 			Class:       &e.Class,
-			Source:      principal.Label,
+			Source:      &e.Source,
 			Destination: &e.Destination,
 		}
 
