@@ -20,12 +20,23 @@ func New(s *service.Service) StrictServerInterface {
 }
 
 func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (SummaryResponseObject, error) {
-	totalVertices := 123
-	unhealthyVertices := []Vertex{}
-	return Summary200JSONResponse{
-		TotalVertices:     &totalVertices,
-		UnhealthyVertices: &unhealthyVertices,
-	}, nil
+	sum := api.service.Summary()
+
+	list := []Vertex{}
+	for _, v := range sum.UnhealthVertex {
+		vertex := Vertex{
+			Label: &v.Label,
+			Class: &v.Class,
+		}
+		list = append(list, vertex)
+	}
+
+	summary := Summary{
+		TotalVertices:     &sum.TotalVertex,
+		UnhealthyVertices: &list,
+	}
+
+	return Summary200JSONResponse(summary), nil
 }
 
 func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (GetVertexResponseObject, error) {
@@ -48,7 +59,51 @@ func (api *API) GetVertexDependants(ctx context.Context, request GetVertexDepend
 }
 
 func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDependenciesRequestObject) (GetVertexDependenciesResponseObject, error) {
-	return GetVertexDependencies200JSONResponse{}, nil
+
+	pall := false
+	if request.Params.All != nil {
+		pall = *request.Params.All
+	}
+
+	serviceSub := api.service.GetVertexDependencies(request.Label, pall)
+
+	title := "Dependencias de " + request.Label
+	edges := []Edge{}
+	vertices := []Vertex{}
+
+	sub := Subgraph{
+		Title: &title,
+		All:   &serviceSub.All,
+		Principal: &Vertex{
+			Label: &serviceSub.Principal.Label,
+			Class: &serviceSub.Principal.Class,
+		},
+		Edges:    &[]Edge{},
+		Vertices: &[]Vertex{},
+	}
+
+	for _, e := range serviceSub.Edges {
+		edge := Edge{
+			Label:       &e.Label,
+			Class:       &e.Class,
+			Source:      &e.Source,
+			Destination: &e.Destination,
+		}
+		edges = append(edges, edge)
+	}
+
+	for _, v := range serviceSub.Vertices {
+		vertex := Vertex{
+			Label: &v.Label,
+			Class: &v.Class,
+		}
+		vertices = append(vertices, vertex)
+	}
+
+	sub.Edges = &edges
+	sub.Vertices = &vertices
+
+	return GetVertexDependencies200JSONResponse(sub), nil
 }
 
 func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineagesRequestObject) (GetVertexLineagesResponseObject, error) {
