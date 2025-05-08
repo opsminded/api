@@ -96,7 +96,7 @@ func (api *API) GetVertexDependants(ctx context.Context, request GetVertexDepend
 	sub.Edges = &edges
 	sub.Vertices = &vertices
 
-	return GetVertexDependants200JSONResponse{}, nil
+	return GetVertexDependants200JSONResponse(sub), nil
 }
 
 func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDependenciesRequestObject) (GetVertexDependenciesResponseObject, error) {
@@ -197,5 +197,44 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 }
 
 func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetPathResponseObject, error) {
-	return GetPath200JSONResponse{}, nil
+
+	serviceSub := api.service.Path(request.Label, request.Destination)
+
+	title := "Caminho entre " + request.Label + " e " + request.Destination
+	edges := []Edge{}
+	vertices := []Vertex{}
+
+	sub := Subgraph{
+		Title: &title,
+		All:   &serviceSub.All,
+		Principal: &Vertex{
+			Label: &serviceSub.Principal.Label,
+			Class: &serviceSub.Principal.Class,
+		},
+		Edges:    &[]Edge{},
+		Vertices: &[]Vertex{},
+	}
+
+	for _, e := range serviceSub.Edges {
+		edge := Edge{
+			Label:       &e.Label,
+			Class:       &e.Class,
+			Source:      &e.Source,
+			Destination: &e.Destination,
+		}
+		edges = append(edges, edge)
+	}
+
+	for _, v := range serviceSub.Vertices {
+		vertex := Vertex{
+			Label: &v.Label,
+			Class: &v.Class,
+		}
+		vertices = append(vertices, vertex)
+	}
+
+	sub.Edges = &edges
+	sub.Vertices = &vertices
+
+	return GetPath200JSONResponse(sub), nil
 }
