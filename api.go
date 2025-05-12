@@ -1,4 +1,4 @@
-//go:generate go tool oapi-codegen -config cfg.yaml http://0.0.0.0:3030/openapi.json
+//go:generate go tool oapi-codegen -config cfg.yaml https://raw.githubusercontent.com/opsminded/spec/refs/heads/main/openapi.json
 package api
 
 import (
@@ -21,34 +21,20 @@ func New(s *service.Service) StrictServerInterface {
 
 func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (SummaryResponseObject, error) {
 	sum := api.service.Summary()
-
-	list := []Vertex{}
-	for _, v := range sum.UnhealthVertex {
-		vertex := Vertex{
-			Label: &v.Label,
-			Class: &v.Class,
-		}
-		list = append(list, vertex)
-	}
-
 	summary := Summary{
-		TotalVertices:     &sum.TotalVertex,
-		UnhealthyVertices: &list,
+		TotalVertices: sum.TotalVertex,
 	}
-
 	return Summary200JSONResponse(summary), nil
 }
 
 func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (GetVertexResponseObject, error) {
-
 	p, err := api.service.GetVertex(request.Label)
 	if err != nil {
 		return nil, err
 	}
 
 	v := Vertex{
-		Label: &p.Label,
-		Class: &p.Class,
+		Label: p.Label,
 	}
 
 	return GetVertex200JSONResponse(v), nil
@@ -59,42 +45,34 @@ func (api *API) GetVertexDependants(ctx context.Context, request GetVertexDepend
 	if request.Params.All != nil {
 		pall = *request.Params.All
 	}
-	serviceSub := api.service.GetVertexDependants(request.Label, pall)
 
-	title := "Dependentes de " + request.Label
-	edges := []Edge{}
-	vertices := []Vertex{}
+	serviceSub := api.service.GetVertexDependencies(request.Label, false)
 
 	sub := Subgraph{
-		Title: &title,
-		All:   &serviceSub.All,
-		Principal: &Vertex{
-			Label: &serviceSub.Principal.Label,
-			Class: &serviceSub.Principal.Class,
+		Title: "Dependentes de " + request.Label,
+		All:   pall,
+		Principal: Vertex{
+			Label: serviceSub.Principal.Label,
 		},
-		Edges:    &[]Edge{},
-		Vertices: &[]Vertex{},
+		Edges:    []Edge{},
+		Vertices: []Vertex{},
 	}
 
-	for _, e := range serviceSub.Edges {
+	for _, e := range serviceSub.SubGraph.Edges {
 		edge := Edge{
-			Label:       &e.Label,
-			Class:       &e.Class,
-			Source:      &e.Source,
-			Destination: &e.Destination,
+			Label:       e.Label,
+			Source:      e.Source.Label,
+			Destination: e.Destination.Label,
 		}
-		edges = append(edges, edge)
+		sub.Edges = append(sub.Edges, edge)
 	}
 
-	for _, v := range serviceSub.Vertices {
+	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
-			Label: &v.Label,
-			Class: &v.Class,
+			Label: v.Label,
 		}
-		vertices = append(vertices, vertex)
+		sub.Vertices = append(sub.Vertices, vertex)
 	}
-	sub.Edges = &edges
-	sub.Vertices = &vertices
 
 	return GetVertexDependants200JSONResponse(sub), nil
 }
@@ -107,41 +85,31 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 
 	serviceSub := api.service.GetVertexDependencies(request.Label, pall)
 
-	title := "Dependencias de " + request.Label
-	edges := []Edge{}
-	vertices := []Vertex{}
-
 	sub := Subgraph{
-		Title: &title,
-		All:   &serviceSub.All,
-		Principal: &Vertex{
-			Label: &serviceSub.Principal.Label,
-			Class: &serviceSub.Principal.Class,
+		Title: "Dependencias de " + request.Label,
+		All:   serviceSub.All,
+		Principal: Vertex{
+			Label: serviceSub.Principal.Label,
 		},
-		Edges:    &[]Edge{},
-		Vertices: &[]Vertex{},
+		Edges:    []Edge{},
+		Vertices: []Vertex{},
 	}
 
-	for _, e := range serviceSub.Edges {
+	for _, e := range serviceSub.SubGraph.Edges {
 		edge := Edge{
-			Label:       &e.Label,
-			Class:       &e.Class,
-			Source:      &e.Source,
-			Destination: &e.Destination,
+			Label:       e.Label,
+			Source:      e.Source.Label,
+			Destination: e.Destination.Label,
 		}
-		edges = append(edges, edge)
+		sub.Edges = append(sub.Edges, edge)
 	}
 
-	for _, v := range serviceSub.Vertices {
+	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
-			Label: &v.Label,
-			Class: &v.Class,
+			Label: v.Label,
 		}
-		vertices = append(vertices, vertex)
+		sub.Vertices = append(sub.Vertices, vertex)
 	}
-
-	sub.Edges = &edges
-	sub.Vertices = &vertices
 
 	return GetVertexDependencies200JSONResponse(sub), nil
 }
@@ -151,90 +119,66 @@ func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineages
 }
 
 func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighborsRequestObject) (GetVertexNeighborsResponseObject, error) {
-
 	p, err := api.service.GetVertex(request.Label)
 	if err != nil {
 		return nil, err
 	}
 
-	principal := Vertex{
-		Label: &p.Label,
-		Class: &p.Class,
-	}
-
-	edges := []Edge{}
-	vertices := []Vertex{}
-
 	serviceSub := api.service.Neighbors(request.Label)
 
-	for _, e := range serviceSub.Edges {
-		edge := Edge{
-			Label:       &e.Label,
-			Class:       &e.Class,
-			Source:      &e.Source,
-			Destination: &e.Destination,
-		}
-
-		edges = append(edges, edge)
-	}
-
-	for _, v := range serviceSub.Vertices {
-		vertex := Vertex{
-			Label: &v.Label,
-			Class: &v.Class,
-		}
-
-		vertices = append(vertices, vertex)
-	}
-
 	ss := Subgraph{
-		Principal: &principal,
-		Edges:     &edges,
-		Vertices:  &vertices,
+		Principal: Vertex{
+			Label: p.Label,
+		},
+		Edges:    []Edge{},
+		Vertices: []Vertex{},
+	}
+
+	for _, e := range serviceSub.SubGraph.Edges {
+		edge := Edge{
+			Label:       e.Label,
+			Source:      e.Source.Label,
+			Destination: e.Destination.Label,
+		}
+		ss.Edges = append(ss.Edges, edge)
+	}
+
+	for _, v := range serviceSub.SubGraph.Vertices {
+		vertex := Vertex{
+			Label: v.Label,
+		}
+		ss.Vertices = append(ss.Vertices, vertex)
 	}
 
 	return GetVertexNeighbors200JSONResponse(ss), nil
 }
 
 func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetPathResponseObject, error) {
-
 	serviceSub := api.service.Path(request.Label, request.Destination)
-
-	title := "Caminho entre " + request.Label + " e " + request.Destination
-	edges := []Edge{}
-	vertices := []Vertex{}
-
 	sub := Subgraph{
-		Title: &title,
-		All:   &serviceSub.All,
-		Principal: &Vertex{
-			Label: &serviceSub.Principal.Label,
-			Class: &serviceSub.Principal.Class,
+		Title: "Caminho entre " + request.Label + " e " + request.Destination,
+		Principal: Vertex{
+			Label: serviceSub.Principal.Label,
 		},
-		Edges:    &[]Edge{},
-		Vertices: &[]Vertex{},
+		Edges:    []Edge{},
+		Vertices: []Vertex{},
 	}
 
-	for _, e := range serviceSub.Edges {
+	for _, e := range serviceSub.SubGraph.Edges {
 		edge := Edge{
-			Label:       &e.Label,
-			Class:       &e.Class,
-			Source:      &e.Source,
-			Destination: &e.Destination,
+			Label:       e.Label,
+			Source:      e.Source.Label,
+			Destination: e.Destination.Label,
 		}
-		edges = append(edges, edge)
+		sub.Edges = append(sub.Edges, edge)
 	}
 
-	for _, v := range serviceSub.Vertices {
+	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
-			Label: &v.Label,
-			Class: &v.Class,
+			Label: v.Label,
 		}
-		vertices = append(vertices, vertex)
+		sub.Vertices = append(sub.Vertices, vertex)
 	}
-
-	sub.Edges = &edges
-	sub.Vertices = &vertices
 
 	return GetPath200JSONResponse(sub), nil
 }
