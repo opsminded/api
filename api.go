@@ -33,11 +33,11 @@ func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (Summ
 func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (GetVertexResponseObject, error) {
 	p, err := api.service.GetVertex(request.Label)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
-		nf := NotFoundJSONResponse{Code: 404, Error: "Not Found"}
+		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertex404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
 	if err != nil {
-		ise := InternalServerErrorJSONResponse{Code: 500, Error: "Internal Server Error"}
+		ise := InternalServerErrorJSONResponse{Code: 500, Error: err.Error()}
 		return GetVertex500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 	v := Vertex{
@@ -54,12 +54,12 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 
 	serviceSub, err := api.service.GetVertexDependencies(request.Label, false)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
-		nf := NotFoundJSONResponse{Code: 404, Error: "Not Found"}
+		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexDependents404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
 
 	if err != nil {
-		ise := InternalServerErrorJSONResponse{Code: 500, Error: "Internal Server Error"}
+		ise := InternalServerErrorJSONResponse{Code: 500, Error: err.Error()}
 		return GetVertexDependents500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 
@@ -99,12 +99,12 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 	serviceSub, err := api.service.GetVertexDependencies(request.Label, pall)
 
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
-		nf := NotFoundJSONResponse{Code: 404, Error: "Not Found"}
+		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexDependencies404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
 
 	if err != nil {
-		ise := InternalServerErrorJSONResponse{Code: 500, Error: "Internal Server Error"}
+		ise := InternalServerErrorJSONResponse{Code: 500, Error: err.Error()}
 		return GetVertexDependencies500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 
@@ -138,28 +138,34 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 }
 
 func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineagesRequestObject) (GetVertexLineagesResponseObject, error) {
-	return GetVertexLineages200JSONResponse{}, nil
+	sub := Subgraph{
+		Title:     "Linhas de " + request.Label,
+		Principal: Vertex{},
+		Edges:     []Edge{},
+		Vertices:  []Vertex{},
+	}
+	return GetVertexLineages200JSONResponse(sub), nil
 }
 
 func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighborsRequestObject) (GetVertexNeighborsResponseObject, error) {
 	p, err := api.service.GetVertex(request.Label)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
-		nf := NotFoundJSONResponse{Code: 404, Error: "Not Found"}
+		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexNeighbors404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
 	if err != nil {
-		ise := InternalServerErrorJSONResponse{Code: 500, Error: "Internal Server Error"}
+		ise := InternalServerErrorJSONResponse{Code: 500, Error: err.Error()}
 		return GetVertexNeighbors500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 
 	serviceSub, err := api.service.Neighbors(request.Label)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
-		nf := NotFoundJSONResponse{Code: 404, Error: "Not Found"}
+		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexNeighbors404JSONResponse{NotFoundJSONResponse: nf}, err
 	}
 
 	if err != nil {
-		ise := InternalServerErrorJSONResponse{Code: 500, Error: "Internal Server Error"}
+		ise := InternalServerErrorJSONResponse{Code: 500, Error: err.Error()}
 		return GetVertexNeighbors500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 
@@ -194,12 +200,12 @@ func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetP
 	serviceSub, err := api.service.Path(request.Label, request.Destination)
 
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
-		nf := NotFoundJSONResponse{Code: 404, Error: "Not Found"}
+		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetPath404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
 
 	if err != nil {
-		ise := InternalServerErrorJSONResponse{Code: 500, Error: "Internal Server Error"}
+		ise := InternalServerErrorJSONResponse{Code: 500, Error: err.Error()}
 		return GetPath500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 
