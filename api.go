@@ -139,10 +139,11 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 
 func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineagesRequestObject) (GetVertexLineagesResponseObject, error) {
 	sub := Subgraph{
-		Title:     "Linhas de " + request.Label,
-		Principal: Vertex{},
-		Edges:     []Edge{},
-		Vertices:  []Vertex{},
+		Title:      "Linhas de " + request.Label,
+		Principal:  Vertex{},
+		Highlights: []Vertex{},
+		Edges:      []Edge{},
+		Vertices:   []Vertex{},
 	}
 	return GetVertexLineages200JSONResponse(sub), nil
 }
