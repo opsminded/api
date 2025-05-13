@@ -63,7 +63,7 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 		pall = *request.Params.All
 	}
 
-	serviceSub, err := api.service.GetVertexDependencies(request.Label, false)
+	serviceSub, err := api.service.GetVertexDependents(request.Label, pall)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexDependents404JSONResponse{NotFoundJSONResponse: nf}, nil
