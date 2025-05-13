@@ -7,8 +7,8 @@ tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 require (
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/oapi-codegen/runtime v1.1.1
-	github.com/opsminded/graphlib v1.7.0
-	github.com/opsminded/service v0.0.0-20250513001037-bf67bca4adeb
+	github.com/opsminded/graphlib v1.9.0
+	github.com/opsminded/service v0.0.0-20250513151802-c9a4dc80cfba
 )
 
 require (
