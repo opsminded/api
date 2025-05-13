@@ -24,9 +24,19 @@ func New(s *service.Service) StrictServerInterface {
 func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (SummaryResponseObject, error) {
 	sum := api.service.Summary()
 	summary := Summary{
-		TotalVertices:     sum.TotalVertex,
+		TotalEdges:        sum.TotalEdges,
+		TotalVertices:     sum.TotalVertices,
 		UnhealthyVertices: []Vertex{},
 	}
+
+	for _, v := range sum.UnhealthyVertices {
+		vertex := Vertex{
+			Label:   v.Label,
+			Healthy: v.Health,
+		}
+		summary.UnhealthyVertices = append(summary.UnhealthyVertices, vertex)
+	}
+
 	return Summary200JSONResponse(summary), nil
 }
 
@@ -41,7 +51,8 @@ func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (
 		return GetVertex500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 	v := Vertex{
-		Label: p.Label,
+		Label:   p.Label,
+		Healthy: p.Health,
 	}
 	return GetVertex200JSONResponse(v), nil
 }
@@ -67,10 +78,12 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 		Title: "Dependentes de " + request.Label,
 		All:   pall,
 		Principal: Vertex{
-			Label: serviceSub.Principal.Label,
+			Label:   serviceSub.Principal.Label,
+			Healthy: serviceSub.Principal.Health,
 		},
-		Edges:    []Edge{},
-		Vertices: []Vertex{},
+		Edges:      []Edge{},
+		Vertices:   []Vertex{},
+		Highlights: []Vertex{},
 	}
 
 	for _, e := range serviceSub.SubGraph.Edges {
@@ -83,7 +96,8 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 	}
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
-			Label: v.Label,
+			Label:   v.Label,
+			Healthy: v.Health,
 		}
 		sub.Vertices = append(sub.Vertices, vertex)
 	}
@@ -112,10 +126,12 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 		Title: "Dependencias de " + request.Label,
 		All:   serviceSub.All,
 		Principal: Vertex{
-			Label: serviceSub.Principal.Label,
+			Label:   serviceSub.Principal.Label,
+			Healthy: serviceSub.Principal.Health,
 		},
-		Edges:    []Edge{},
-		Vertices: []Vertex{},
+		Edges:      []Edge{},
+		Vertices:   []Vertex{},
+		Highlights: []Vertex{},
 	}
 
 	for _, e := range serviceSub.SubGraph.Edges {
@@ -129,7 +145,8 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
-			Label: v.Label,
+			Label:   v.Label,
+			Healthy: v.Health,
 		}
 		sub.Vertices = append(sub.Vertices, vertex)
 	}
@@ -141,9 +158,9 @@ func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineages
 	sub := Subgraph{
 		Title:      "Linhas de " + request.Label,
 		Principal:  Vertex{},
-		Highlights: []Vertex{},
 		Edges:      []Edge{},
 		Vertices:   []Vertex{},
+		Highlights: []Vertex{},
 	}
 	return GetVertexLineages200JSONResponse(sub), nil
 }
@@ -172,10 +189,12 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 
 	ss := Subgraph{
 		Principal: Vertex{
-			Label: p.Label,
+			Label:   p.Label,
+			Healthy: p.Health,
 		},
-		Edges:    []Edge{},
-		Vertices: []Vertex{},
+		Edges:      []Edge{},
+		Vertices:   []Vertex{},
+		Highlights: []Vertex{},
 	}
 
 	for _, e := range serviceSub.SubGraph.Edges {
@@ -189,7 +208,8 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
-			Label: v.Label,
+			Label:   v.Label,
+			Healthy: v.Health,
 		}
 		ss.Vertices = append(ss.Vertices, vertex)
 	}
@@ -213,10 +233,12 @@ func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetP
 	sub := Subgraph{
 		Title: "Caminho entre " + request.Label + " e " + request.Destination,
 		Principal: Vertex{
-			Label: serviceSub.Principal.Label,
+			Label:   serviceSub.Principal.Label,
+			Healthy: serviceSub.Principal.Health,
 		},
-		Edges:    []Edge{},
-		Vertices: []Vertex{},
+		Edges:      []Edge{},
+		Vertices:   []Vertex{},
+		Highlights: []Vertex{},
 	}
 
 	for _, e := range serviceSub.SubGraph.Edges {
@@ -230,7 +252,8 @@ func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetP
 
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
-			Label: v.Label,
+			Label:   v.Label,
+			Healthy: v.Health,
 		}
 		sub.Vertices = append(sub.Vertices, vertex)
 	}
