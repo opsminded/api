@@ -4,6 +4,7 @@ package api
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/opsminded/graphlib"
 	"github.com/opsminded/service"
@@ -31,6 +32,7 @@ func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (Summ
 
 	for _, v := range sum.UnhealthyVertices {
 		vertex := Vertex{
+			Key:     v.Key,
 			Label:   v.Label,
 			Healthy: v.Healthy,
 		}
@@ -41,7 +43,7 @@ func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (Summ
 }
 
 func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (GetVertexResponseObject, error) {
-	p, err := api.service.GetVertex(request.Label)
+	p, err := api.service.GetVertex(request.Key)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertex404JSONResponse{NotFoundJSONResponse: nf}, nil
@@ -51,6 +53,7 @@ func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (
 		return GetVertex500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 	v := Vertex{
+		Key:     p.Key,
 		Label:   p.Label,
 		Healthy: p.Healthy,
 	}
@@ -63,7 +66,7 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 		pall = *request.Params.All
 	}
 
-	serviceSub, err := api.service.GetVertexDependents(request.Label, pall)
+	serviceSub, err := api.service.GetVertexDependents(request.Key, pall)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexDependents404JSONResponse{NotFoundJSONResponse: nf}, nil
@@ -75,9 +78,10 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 	}
 
 	sub := Subgraph{
-		Title: "Dependentes de " + request.Label,
+		Title: "Dependentes de " + request.Key,
 		All:   pall,
 		Principal: Vertex{
+			Key:     serviceSub.Principal.Key,
 			Label:   serviceSub.Principal.Label,
 			Healthy: serviceSub.Principal.Healthy,
 		},
@@ -88,14 +92,15 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 
 	for _, e := range serviceSub.SubGraph.Edges {
 		edge := Edge{
-			Label:       e.Label,
-			Source:      e.Source.Label,
-			Destination: e.Destination.Label,
+			Key:    e.Key,
+			Source: e.Source,
+			Target: e.Target,
 		}
 		sub.Edges = append(sub.Edges, edge)
 	}
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
+			Key:     v.Key,
 			Label:   v.Label,
 			Healthy: v.Healthy,
 		}
@@ -110,7 +115,8 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 		pall = *request.Params.All
 	}
 
-	serviceSub, err := api.service.GetVertexDependencies(request.Label, pall)
+	log.Println("api GetVertexDependencies", request.Key, pall)
+	serviceSub, err := api.service.VertexDependencies(request.Key, pall)
 
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
@@ -123,9 +129,10 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 	}
 
 	sub := Subgraph{
-		Title: "Dependencias de " + request.Label,
+		Title: "Dependencias de " + request.Key,
 		All:   pall,
 		Principal: Vertex{
+			Key:     serviceSub.Principal.Key,
 			Label:   serviceSub.Principal.Label,
 			Healthy: serviceSub.Principal.Healthy,
 		},
@@ -136,15 +143,16 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 
 	for _, e := range serviceSub.SubGraph.Edges {
 		edge := Edge{
-			Label:       e.Label,
-			Source:      e.Source.Label,
-			Destination: e.Destination.Label,
+			Key:    e.Key,
+			Source: e.Source,
+			Target: e.Target,
 		}
 		sub.Edges = append(sub.Edges, edge)
 	}
 
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
+			Key:     v.Key,
 			Label:   v.Label,
 			Healthy: v.Healthy,
 		}
@@ -156,7 +164,7 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 
 func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineagesRequestObject) (GetVertexLineagesResponseObject, error) {
 
-	serviceSub, err := api.service.GetVertexLineages(request.Label)
+	serviceSub, err := api.service.GetVertexLineages(request.Key)
 
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
@@ -169,8 +177,9 @@ func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineages
 	}
 
 	sub := Subgraph{
-		Title: "Linhas de " + request.Label,
+		Title: "Linhas de " + serviceSub.Principal.Label,
 		Principal: Vertex{
+			Key:     serviceSub.Principal.Key,
 			Label:   serviceSub.Principal.Label,
 			Healthy: serviceSub.Principal.Healthy,
 		},
@@ -180,15 +189,16 @@ func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineages
 	}
 	for _, e := range serviceSub.SubGraph.Edges {
 		edge := Edge{
-			Label:       e.Label,
-			Source:      e.Source.Label,
-			Destination: e.Destination.Label,
+			Key:    e.Key,
+			Source: e.Source,
+			Target: e.Target,
 		}
 		sub.Edges = append(sub.Edges, edge)
 	}
 
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
+			Key:     v.Key,
 			Label:   v.Label,
 			Healthy: v.Healthy,
 		}
@@ -198,7 +208,7 @@ func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineages
 }
 
 func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighborsRequestObject) (GetVertexNeighborsResponseObject, error) {
-	p, err := api.service.GetVertex(request.Label)
+	p, err := api.service.GetVertex(request.Key)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexNeighbors404JSONResponse{NotFoundJSONResponse: nf}, nil
@@ -208,7 +218,7 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 		return GetVertexNeighbors500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 
-	serviceSub, err := api.service.Neighbors(request.Label)
+	serviceSub, err := api.service.Neighbors(request.Key)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexNeighbors404JSONResponse{NotFoundJSONResponse: nf}, err
@@ -221,6 +231,7 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 
 	ss := Subgraph{
 		Principal: Vertex{
+			Key:     p.Key,
 			Label:   p.Label,
 			Healthy: p.Healthy,
 		},
@@ -231,15 +242,16 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 
 	for _, e := range serviceSub.SubGraph.Edges {
 		edge := Edge{
-			Label:       e.Label,
-			Source:      e.Source.Label,
-			Destination: e.Destination.Label,
+			Key:    e.Key,
+			Source: e.Source,
+			Target: e.Target,
 		}
 		ss.Edges = append(ss.Edges, edge)
 	}
 
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
+			Key:     v.Key,
 			Label:   v.Label,
 			Healthy: v.Healthy,
 		}
@@ -250,7 +262,7 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 }
 
 func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetPathResponseObject, error) {
-	serviceSub, err := api.service.Path(request.Label, request.Destination)
+	serviceSub, err := api.service.Path(request.Key, request.Target)
 
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
@@ -263,8 +275,9 @@ func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetP
 	}
 
 	sub := Subgraph{
-		Title: "Caminho entre " + request.Label + " e " + request.Destination,
+		Title: "Caminho entre " + serviceSub.Principal.Label + " e " + request.Target,
 		Principal: Vertex{
+			Key:     serviceSub.Principal.Key,
 			Label:   serviceSub.Principal.Label,
 			Healthy: serviceSub.Principal.Healthy,
 		},
@@ -275,15 +288,16 @@ func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetP
 
 	for _, e := range serviceSub.SubGraph.Edges {
 		edge := Edge{
-			Label:       e.Label,
-			Source:      e.Source.Label,
-			Destination: e.Destination.Label,
+			Key:    e.Key,
+			Source: e.Source,
+			Target: e.Target,
 		}
 		sub.Edges = append(sub.Edges, edge)
 	}
 
 	for _, v := range serviceSub.SubGraph.Vertices {
 		vertex := Vertex{
+			Key:     v.Key,
 			Label:   v.Label,
 			Healthy: v.Healthy,
 		}
@@ -299,7 +313,7 @@ func (api *API) ClearHealthStatus(ctx context.Context, request ClearHealthStatus
 }
 
 func (api *API) MarkVertexUnhealthy(ctx context.Context, request MarkVertexUnhealthyRequestObject) (MarkVertexUnhealthyResponseObject, error) {
-	err := api.service.SetVertexHealth(request.Label, false)
+	err := api.service.SetVertexHealth(request.Key, false)
 
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
