@@ -81,10 +81,10 @@ github.com/onsi/gomega v1.17.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAl
 github.com/onsi/gomega v1.19.0/go.mod h1:LY+I3pBVzYsTBU1AnDwOSxaYi9WoWiqgwooUqq9yPro=
 github.com/onsi/gomega v1.27.6 h1:ENqfyGeS5AX/rlXDd/ETokDz93u0YufY1Pgxuy/PvWE=
 github.com/onsi/gomega v1.27.6/go.mod h1:PIQNjfQwkP3aQAH7lf7j87O/5FiNr+ZR8+ipb+qQlhg=
-github.com/opsminded/graphlib v1.9.0 h1:CMetaM0x0ijLO/YUYtIpRtlufJ9CkitXCL9DDrH2G/w=
-github.com/opsminded/graphlib v1.9.0/go.mod h1:Sg4YKqOICSBMW/6ksmt0Q/TiqsTm3lkiYWPYkptpHDo=
-github.com/opsminded/service v0.0.0-20250513151802-c9a4dc80cfba h1:xyoln4k8DPTlnh+vWzd8B8iN2NKrDDp+k8+a4q1y2FI=
-github.com/opsminded/service v0.0.0-20250513151802-c9a4dc80cfba/go.mod h1:Z90Rpc7r7NRkoFU4ARD22onQ9PfiaI+01Xdy13/yECM=
+github.com/opsminded/graphlib/v2 v2.1.0 h1:CWkxbj4S9QBm6mtmeC//YPRibgOQ1QML3ejXrjHJIKk=
+github.com/opsminded/graphlib/v2 v2.1.0/go.mod h1:q9mc43QH5m4AcW7v+UhiRvgibZ4EhgAH07TNQ/VzkNk=
+github.com/opsminded/service v0.0.0-20250515193102-308898f45b17 h1:zaN5yoOeuH4xx9OJA2EGTNRQdMmJdJBqzJCAEY1/XZE=
+github.com/opsminded/service v0.0.0-20250515193102-308898f45b17/go.mod h1:w+0ignSdbmm+p7ajTlZd40CVEvi//TjPdv/RueoYGlk=
 github.com/perimeterx/marshmallow v1.1.5 h1:a2LALqQ1BlHM8PZblsDdidgv1mWi1DgC2UmX50IvK2s=
 github.com/perimeterx/marshmallow v1.1.5/go.mod h1:dsXbUu8CRzfYP5a87xpp0xq9S3u0Vchtcl8we9tYaXw=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

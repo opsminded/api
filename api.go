@@ -6,7 +6,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/opsminded/graphlib"
+	"github.com/opsminded/graphlib/v2"
 	"github.com/opsminded/service"
 )
 
@@ -265,6 +265,19 @@ func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetP
 func (api *API) ClearHealthStatus(ctx context.Context, request ClearHealthStatusRequestObject) (ClearHealthStatusResponseObject, error) {
 	api.service.ClearGraphHealthyStatus()
 	return ClearHealthStatus200Response{}, nil
+}
+
+func (api *API) MarkVertexHealthy(ctx context.Context, request MarkVertexHealthyRequestObject) (MarkVertexHealthyResponseObject, error) {
+	err := api.service.SetVertexHealth(request.Key, true)
+	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
+		return MarkVertexHealthy404JSONResponse{NotFoundJSONResponse: nf}, nil
+	}
+	if err != nil {
+		ise := InternalServerErrorJSONResponse{Code: 500, Error: err.Error()}
+		return MarkVertexHealthy500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
+	}
+	return MarkVertexHealthy200Response{}, nil
 }
 
 func (api *API) MarkVertexUnhealthy(ctx context.Context, request MarkVertexUnhealthyRequestObject) (MarkVertexUnhealthyResponseObject, error) {

@@ -160,15 +160,18 @@ type ServerInterface interface {
 	// Recursos dependentes
 	// (GET /vertices/{key}/dependents)
 	GetVertexDependents(w http.ResponseWriter, r *http.Request, key Key, params GetVertexDependentsParams)
+	// Marcar recurso como não saudável
+	// (DELETE /vertices/{key}/healthy)
+	MarkVertexUnhealthy(w http.ResponseWriter, r *http.Request, key Key)
+	// Marcar recurso como saudável
+	// (POST /vertices/{key}/healthy)
+	MarkVertexHealthy(w http.ResponseWriter, r *http.Request, key Key)
 	// Vizinhos
 	// (GET /vertices/{key}/neighbors)
 	GetVertexNeighbors(w http.ResponseWriter, r *http.Request, key Key)
 	// Caminho entre dois recursos
 	// (GET /vertices/{key}/path/{target})
 	GetPath(w http.ResponseWriter, r *http.Request, key Key, target string)
-	// Marcar recurso como não saudável
-	// (POST /vertices/{key}/unhealthy)
-	MarkVertexUnhealthy(w http.ResponseWriter, r *http.Request, key Key)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -335,6 +338,68 @@ func (siw *ServerInterfaceWrapper) GetVertexDependents(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// MarkVertexUnhealthy operation middleware
+func (siw *ServerInterfaceWrapper) MarkVertexUnhealthy(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "key" -------------
+	var key Key
+
+	err = runtime.BindStyledParameterWithOptions("simple", "key", r.PathValue("key"), &key, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "key", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerHttpAuthenticationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkVertexUnhealthy(w, r, key)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkVertexHealthy operation middleware
+func (siw *ServerInterfaceWrapper) MarkVertexHealthy(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "key" -------------
+	var key Key
+
+	err = runtime.BindStyledParameterWithOptions("simple", "key", r.PathValue("key"), &key, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "key", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerHttpAuthenticationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkVertexHealthy(w, r, key)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetVertexNeighbors operation middleware
 func (siw *ServerInterfaceWrapper) GetVertexNeighbors(w http.ResponseWriter, r *http.Request) {
 
@@ -397,37 +462,6 @@ func (siw *ServerInterfaceWrapper) GetPath(w http.ResponseWriter, r *http.Reques
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetPath(w, r, key, target)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// MarkVertexUnhealthy operation middleware
-func (siw *ServerInterfaceWrapper) MarkVertexUnhealthy(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "key" -------------
-	var key Key
-
-	err = runtime.BindStyledParameterWithOptions("simple", "key", r.PathValue("key"), &key, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "key", Err: err})
-		return
-	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerHttpAuthenticationScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.MarkVertexUnhealthy(w, r, key)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -562,9 +596,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}", wrapper.GetVertex)
 	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}/dependencies", wrapper.GetVertexDependencies)
 	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}/dependents", wrapper.GetVertexDependents)
+	m.HandleFunc("DELETE "+options.BaseURL+"/vertices/{key}/healthy", wrapper.MarkVertexUnhealthy)
+	m.HandleFunc("POST "+options.BaseURL+"/vertices/{key}/healthy", wrapper.MarkVertexHealthy)
 	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}/neighbors", wrapper.GetVertexNeighbors)
 	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}/path/{target}", wrapper.GetPath)
-	m.HandleFunc("POST "+options.BaseURL+"/vertices/{key}/unhealthy", wrapper.MarkVertexUnhealthy)
 
 	return m
 }
@@ -839,6 +874,114 @@ func (response GetVertexDependents500JSONResponse) VisitGetVertexDependentsRespo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type MarkVertexUnhealthyRequestObject struct {
+	Key Key `json:"key"`
+}
+
+type MarkVertexUnhealthyResponseObject interface {
+	VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error
+}
+
+type MarkVertexUnhealthy200Response struct {
+}
+
+func (response MarkVertexUnhealthy200Response) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type MarkVertexUnhealthy401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response MarkVertexUnhealthy401JSONResponse) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkVertexUnhealthy404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response MarkVertexUnhealthy404JSONResponse) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkVertexUnhealthy422JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response MarkVertexUnhealthy422JSONResponse) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkVertexUnhealthy500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response MarkVertexUnhealthy500JSONResponse) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkVertexHealthyRequestObject struct {
+	Key Key `json:"key"`
+}
+
+type MarkVertexHealthyResponseObject interface {
+	VisitMarkVertexHealthyResponse(w http.ResponseWriter) error
+}
+
+type MarkVertexHealthy200Response struct {
+}
+
+func (response MarkVertexHealthy200Response) VisitMarkVertexHealthyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type MarkVertexHealthy401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response MarkVertexHealthy401JSONResponse) VisitMarkVertexHealthyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkVertexHealthy404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response MarkVertexHealthy404JSONResponse) VisitMarkVertexHealthyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkVertexHealthy422JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response MarkVertexHealthy422JSONResponse) VisitMarkVertexHealthyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkVertexHealthy500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response MarkVertexHealthy500JSONResponse) VisitMarkVertexHealthyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetVertexNeighborsRequestObject struct {
 	Key Key `json:"key"`
 }
@@ -950,60 +1093,6 @@ func (response GetPath500JSONResponse) VisitGetPathResponse(w http.ResponseWrite
 	return json.NewEncoder(w).Encode(response)
 }
 
-type MarkVertexUnhealthyRequestObject struct {
-	Key Key `json:"key"`
-}
-
-type MarkVertexUnhealthyResponseObject interface {
-	VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error
-}
-
-type MarkVertexUnhealthy200Response struct {
-}
-
-func (response MarkVertexUnhealthy200Response) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type MarkVertexUnhealthy401JSONResponse struct{ UnauthorizedJSONResponse }
-
-func (response MarkVertexUnhealthy401JSONResponse) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type MarkVertexUnhealthy404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response MarkVertexUnhealthy404JSONResponse) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type MarkVertexUnhealthy422JSONResponse struct{ InvalidRequestJSONResponse }
-
-func (response MarkVertexUnhealthy422JSONResponse) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(422)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type MarkVertexUnhealthy500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
-
-func (response MarkVertexUnhealthy500JSONResponse) VisitMarkVertexUnhealthyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Resumo da infraestrutura
@@ -1021,15 +1110,18 @@ type StrictServerInterface interface {
 	// Recursos dependentes
 	// (GET /vertices/{key}/dependents)
 	GetVertexDependents(ctx context.Context, request GetVertexDependentsRequestObject) (GetVertexDependentsResponseObject, error)
+	// Marcar recurso como não saudável
+	// (DELETE /vertices/{key}/healthy)
+	MarkVertexUnhealthy(ctx context.Context, request MarkVertexUnhealthyRequestObject) (MarkVertexUnhealthyResponseObject, error)
+	// Marcar recurso como saudável
+	// (POST /vertices/{key}/healthy)
+	MarkVertexHealthy(ctx context.Context, request MarkVertexHealthyRequestObject) (MarkVertexHealthyResponseObject, error)
 	// Vizinhos
 	// (GET /vertices/{key}/neighbors)
 	GetVertexNeighbors(ctx context.Context, request GetVertexNeighborsRequestObject) (GetVertexNeighborsResponseObject, error)
 	// Caminho entre dois recursos
 	// (GET /vertices/{key}/path/{target})
 	GetPath(ctx context.Context, request GetPathRequestObject) (GetPathResponseObject, error)
-	// Marcar recurso como não saudável
-	// (POST /vertices/{key}/unhealthy)
-	MarkVertexUnhealthy(ctx context.Context, request MarkVertexUnhealthyRequestObject) (MarkVertexUnhealthyResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -1189,6 +1281,58 @@ func (sh *strictHandler) GetVertexDependents(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// MarkVertexUnhealthy operation middleware
+func (sh *strictHandler) MarkVertexUnhealthy(w http.ResponseWriter, r *http.Request, key Key) {
+	var request MarkVertexUnhealthyRequestObject
+
+	request.Key = key
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkVertexUnhealthy(ctx, request.(MarkVertexUnhealthyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkVertexUnhealthy")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkVertexUnhealthyResponseObject); ok {
+		if err := validResponse.VisitMarkVertexUnhealthyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// MarkVertexHealthy operation middleware
+func (sh *strictHandler) MarkVertexHealthy(w http.ResponseWriter, r *http.Request, key Key) {
+	var request MarkVertexHealthyRequestObject
+
+	request.Key = key
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkVertexHealthy(ctx, request.(MarkVertexHealthyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkVertexHealthy")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MarkVertexHealthyResponseObject); ok {
+		if err := validResponse.VisitMarkVertexHealthyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetVertexNeighbors operation middleware
 func (sh *strictHandler) GetVertexNeighbors(w http.ResponseWriter, r *http.Request, key Key) {
 	var request GetVertexNeighborsRequestObject
@@ -1242,105 +1386,79 @@ func (sh *strictHandler) GetPath(w http.ResponseWriter, r *http.Request, key Key
 	}
 }
 
-// MarkVertexUnhealthy operation middleware
-func (sh *strictHandler) MarkVertexUnhealthy(w http.ResponseWriter, r *http.Request, key Key) {
-	var request MarkVertexUnhealthyRequestObject
-
-	request.Key = key
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.MarkVertexUnhealthy(ctx, request.(MarkVertexUnhealthyRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "MarkVertexUnhealthy")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(MarkVertexUnhealthyResponseObject); ok {
-		if err := validResponse.VisitMarkVertexUnhealthyResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
