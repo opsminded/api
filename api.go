@@ -162,51 +162,6 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 	return GetVertexDependencies200JSONResponse(sub), nil
 }
 
-func (api *API) GetVertexLineages(ctx context.Context, request GetVertexLineagesRequestObject) (GetVertexLineagesResponseObject, error) {
-
-	serviceSub, err := api.service.GetVertexLineages(request.Key)
-
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
-		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
-		return GetVertexLineages404JSONResponse{NotFoundJSONResponse: nf}, nil
-	}
-
-	if err != nil {
-		ise := InternalServerErrorJSONResponse{Code: 500, Error: err.Error()}
-		return GetVertexLineages500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
-	}
-
-	sub := Subgraph{
-		Title: "Linhas de " + serviceSub.Principal.Label,
-		Principal: Vertex{
-			Key:     serviceSub.Principal.Key,
-			Label:   serviceSub.Principal.Label,
-			Healthy: serviceSub.Principal.Healthy,
-		},
-		Edges:      []Edge{},
-		Vertices:   []Vertex{},
-		Highlights: []Vertex{},
-	}
-	for _, e := range serviceSub.SubGraph.Edges {
-		edge := Edge{
-			Key:    e.Key,
-			Source: e.Source,
-			Target: e.Target,
-		}
-		sub.Edges = append(sub.Edges, edge)
-	}
-
-	for _, v := range serviceSub.SubGraph.Vertices {
-		vertex := Vertex{
-			Key:     v.Key,
-			Label:   v.Label,
-			Healthy: v.Healthy,
-		}
-		sub.Vertices = append(sub.Vertices, vertex)
-	}
-	return GetVertexLineages200JSONResponse(sub), nil
-}
-
 func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighborsRequestObject) (GetVertexNeighborsResponseObject, error) {
 	p, err := api.service.GetVertex(request.Key)
 	if errors.As(err, &graphlib.VertexNotFoundError{}) {
