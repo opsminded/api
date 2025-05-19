@@ -92,6 +92,32 @@ type Vertex struct {
 	LastCheck string `json:"last_check"`
 }
 
+// VertexAttrubutes Lista de atributos do recurso
+type VertexAttrubutes = []struct {
+	// Description Descrição do atributo
+	Description string `json:"description"`
+
+	// Type Tipo do atributo
+	Type string `json:"type"`
+
+	// Value Valor do atributo, que pode ser string, número ou booleano
+	Value VertexAttrubutes_Value `json:"value"`
+}
+
+// VertexAttrubutesValue0 defines model for .
+type VertexAttrubutesValue0 = string
+
+// VertexAttrubutesValue1 defines model for .
+type VertexAttrubutesValue1 = int
+
+// VertexAttrubutesValue2 defines model for .
+type VertexAttrubutesValue2 = bool
+
+// VertexAttrubutes_Value Valor do atributo, que pode ser string, número ou booleano
+type VertexAttrubutes_Value struct {
+	union json.RawMessage
+}
+
 // Key defines model for key.
 type Key = string
 
@@ -143,6 +169,94 @@ type GetVertexDependentsParams struct {
 	All *bool `form:"all,omitempty" json:"all,omitempty"`
 }
 
+// AsVertexAttrubutesValue0 returns the union data inside the VertexAttrubutes_Value as a VertexAttrubutesValue0
+func (t VertexAttrubutes_Value) AsVertexAttrubutesValue0() (VertexAttrubutesValue0, error) {
+	var body VertexAttrubutesValue0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromVertexAttrubutesValue0 overwrites any union data inside the VertexAttrubutes_Value as the provided VertexAttrubutesValue0
+func (t *VertexAttrubutes_Value) FromVertexAttrubutesValue0(v VertexAttrubutesValue0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeVertexAttrubutesValue0 performs a merge with any union data inside the VertexAttrubutes_Value, using the provided VertexAttrubutesValue0
+func (t *VertexAttrubutes_Value) MergeVertexAttrubutesValue0(v VertexAttrubutesValue0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsVertexAttrubutesValue1 returns the union data inside the VertexAttrubutes_Value as a VertexAttrubutesValue1
+func (t VertexAttrubutes_Value) AsVertexAttrubutesValue1() (VertexAttrubutesValue1, error) {
+	var body VertexAttrubutesValue1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromVertexAttrubutesValue1 overwrites any union data inside the VertexAttrubutes_Value as the provided VertexAttrubutesValue1
+func (t *VertexAttrubutes_Value) FromVertexAttrubutesValue1(v VertexAttrubutesValue1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeVertexAttrubutesValue1 performs a merge with any union data inside the VertexAttrubutes_Value, using the provided VertexAttrubutesValue1
+func (t *VertexAttrubutes_Value) MergeVertexAttrubutesValue1(v VertexAttrubutesValue1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsVertexAttrubutesValue2 returns the union data inside the VertexAttrubutes_Value as a VertexAttrubutesValue2
+func (t VertexAttrubutes_Value) AsVertexAttrubutesValue2() (VertexAttrubutesValue2, error) {
+	var body VertexAttrubutesValue2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromVertexAttrubutesValue2 overwrites any union data inside the VertexAttrubutes_Value as the provided VertexAttrubutesValue2
+func (t *VertexAttrubutes_Value) FromVertexAttrubutesValue2(v VertexAttrubutesValue2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeVertexAttrubutesValue2 performs a merge with any union data inside the VertexAttrubutes_Value, using the provided VertexAttrubutesValue2
+func (t *VertexAttrubutes_Value) MergeVertexAttrubutesValue2(v VertexAttrubutesValue2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t VertexAttrubutes_Value) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *VertexAttrubutes_Value) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Resumo da infraestrutura
@@ -154,6 +268,9 @@ type ServerInterface interface {
 	// Detalhes de um recurso
 	// (GET /vertices/{key})
 	GetVertex(w http.ResponseWriter, r *http.Request, key Key)
+	// Atributos de um recurso
+	// (GET /vertices/{key}/attributes)
+	GetVertexAttributes(w http.ResponseWriter, r *http.Request, key Key)
 	// Dependencias de um recurso
 	// (GET /vertices/{key}/dependencies)
 	GetVertexDependencies(w http.ResponseWriter, r *http.Request, key Key, params GetVertexDependenciesParams)
@@ -245,6 +362,37 @@ func (siw *ServerInterfaceWrapper) GetVertex(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetVertex(w, r, key)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetVertexAttributes operation middleware
+func (siw *ServerInterfaceWrapper) GetVertexAttributes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "key" -------------
+	var key Key
+
+	err = runtime.BindStyledParameterWithOptions("simple", "key", r.PathValue("key"), &key, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "key", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerHttpAuthenticationScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetVertexAttributes(w, r, key)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -594,6 +742,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/summary", wrapper.Summary)
 	m.HandleFunc("POST "+options.BaseURL+"/vertices/clear-health-status", wrapper.ClearHealthStatus)
 	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}", wrapper.GetVertex)
+	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}/attributes", wrapper.GetVertexAttributes)
 	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}/dependencies", wrapper.GetVertexDependencies)
 	m.HandleFunc("GET "+options.BaseURL+"/vertices/{key}/dependents", wrapper.GetVertexDependents)
 	m.HandleFunc("DELETE "+options.BaseURL+"/vertices/{key}/healthy", wrapper.MarkVertexUnhealthy)
@@ -756,6 +905,61 @@ type GetVertex500JSONResponse struct {
 }
 
 func (response GetVertex500JSONResponse) VisitGetVertexResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetVertexAttributesRequestObject struct {
+	Key Key `json:"key"`
+}
+
+type GetVertexAttributesResponseObject interface {
+	VisitGetVertexAttributesResponse(w http.ResponseWriter) error
+}
+
+type GetVertexAttributes200JSONResponse VertexAttrubutes
+
+func (response GetVertexAttributes200JSONResponse) VisitGetVertexAttributesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetVertexAttributes401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetVertexAttributes401JSONResponse) VisitGetVertexAttributesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetVertexAttributes404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetVertexAttributes404JSONResponse) VisitGetVertexAttributesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetVertexAttributes422JSONResponse struct{ InvalidRequestJSONResponse }
+
+func (response GetVertexAttributes422JSONResponse) VisitGetVertexAttributesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetVertexAttributes500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetVertexAttributes500JSONResponse) VisitGetVertexAttributesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -1104,6 +1308,9 @@ type StrictServerInterface interface {
 	// Detalhes de um recurso
 	// (GET /vertices/{key})
 	GetVertex(ctx context.Context, request GetVertexRequestObject) (GetVertexResponseObject, error)
+	// Atributos de um recurso
+	// (GET /vertices/{key}/attributes)
+	GetVertexAttributes(ctx context.Context, request GetVertexAttributesRequestObject) (GetVertexAttributesResponseObject, error)
 	// Dependencias de um recurso
 	// (GET /vertices/{key}/dependencies)
 	GetVertexDependencies(ctx context.Context, request GetVertexDependenciesRequestObject) (GetVertexDependenciesResponseObject, error)
@@ -1220,6 +1427,32 @@ func (sh *strictHandler) GetVertex(w http.ResponseWriter, r *http.Request, key K
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetVertexResponseObject); ok {
 		if err := validResponse.VisitGetVertexResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetVertexAttributes operation middleware
+func (sh *strictHandler) GetVertexAttributes(w http.ResponseWriter, r *http.Request, key Key) {
+	var request GetVertexAttributesRequestObject
+
+	request.Key = key
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetVertexAttributes(ctx, request.(GetVertexAttributesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetVertexAttributes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetVertexAttributesResponseObject); ok {
+		if err := validResponse.VisitGetVertexAttributesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1389,76 +1622,80 @@ func (sh *strictHandler) GetPath(w http.ResponseWriter, r *http.Request, key Key
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"k8v/DwAA//9kcf3ti0IAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

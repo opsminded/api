@@ -44,7 +44,8 @@ func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (Summ
 
 func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (GetVertexResponseObject, error) {
 	p, err := api.service.GetVertex(request.Key)
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+
+	if errors.As(err, &graphlib.VertexNotFoundErr{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertex404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
@@ -60,14 +61,45 @@ func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (
 	return GetVertex200JSONResponse(v), nil
 }
 
+func (api *API) GetVertexAttributes(ctx context.Context, request GetVertexAttributesRequestObject) (GetVertexAttributesResponseObject, error) {
+	// TODO: Implement this function
+
+	x := VertexAttrubutes_Value{}
+	x.FromVertexAttrubutesValue0("hello")
+
+	y := VertexAttrubutes_Value{}
+	y.FromVertexAttrubutesValue1(234234)
+
+	return GetVertexAttributes200JSONResponse{
+		struct {
+			Description string                 `json:"description"`
+			Type        string                 `json:"type"`
+			Value       VertexAttrubutes_Value `json:"value"`
+		}{
+			Description: "description",
+			Type:        "string",
+			Value:       x,
+		},
+		struct {
+			Description string                 `json:"description"`
+			Type        string                 `json:"type"`
+			Value       VertexAttrubutes_Value `json:"value"`
+		}{
+			Description: "strange number",
+			Type:        "integer",
+			Value:       y,
+		},
+	}, nil
+}
+
 func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDependentsRequestObject) (GetVertexDependentsResponseObject, error) {
 	pall := false
 	if request.Params.All != nil {
 		pall = *request.Params.All
 	}
 
-	serviceSub, err := api.service.GetVertexDependents(request.Key, pall)
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+	serviceSub, err := api.service.VertexDependents(request.Key, pall)
+	if errors.As(err, &graphlib.VertexNotFoundErr{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexDependents404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
@@ -118,7 +150,7 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 	log.Println("api GetVertexDependencies", request.Key, pall)
 	serviceSub, err := api.service.VertexDependencies(request.Key, pall)
 
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+	if errors.As(err, &graphlib.VertexNotFoundErr{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexDependencies404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
@@ -164,7 +196,7 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 
 func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighborsRequestObject) (GetVertexNeighborsResponseObject, error) {
 	p, err := api.service.GetVertex(request.Key)
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+	if errors.As(err, &graphlib.VertexNotFoundErr{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexNeighbors404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
@@ -173,8 +205,8 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 		return GetVertexNeighbors500JSONResponse{InternalServerErrorJSONResponse: ise}, nil
 	}
 
-	serviceSub, err := api.service.Neighbors(request.Key)
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+	serviceSub, err := api.service.VertexNeighbors(request.Key)
+	if errors.As(err, &graphlib.VertexNotFoundErr{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetVertexNeighbors404JSONResponse{NotFoundJSONResponse: nf}, err
 	}
@@ -219,7 +251,7 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetPathResponseObject, error) {
 	serviceSub, err := api.service.Path(request.Key, request.Target)
 
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+	if errors.As(err, &graphlib.VertexNotFoundErr{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return GetPath404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
@@ -269,7 +301,7 @@ func (api *API) ClearHealthStatus(ctx context.Context, request ClearHealthStatus
 
 func (api *API) MarkVertexHealthy(ctx context.Context, request MarkVertexHealthyRequestObject) (MarkVertexHealthyResponseObject, error) {
 	err := api.service.SetVertexHealth(request.Key, true)
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+	if errors.As(err, &graphlib.VertexNotFoundErr{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return MarkVertexHealthy404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
@@ -283,7 +315,7 @@ func (api *API) MarkVertexHealthy(ctx context.Context, request MarkVertexHealthy
 func (api *API) MarkVertexUnhealthy(ctx context.Context, request MarkVertexUnhealthyRequestObject) (MarkVertexUnhealthyResponseObject, error) {
 	err := api.service.SetVertexHealth(request.Key, false)
 
-	if errors.As(err, &graphlib.VertexNotFoundError{}) {
+	if errors.As(err, &graphlib.VertexNotFoundErr{}) {
 		nf := NotFoundJSONResponse{Code: 404, Error: err.Error()}
 		return MarkVertexUnhealthy404JSONResponse{NotFoundJSONResponse: nf}, nil
 	}
