@@ -34,6 +34,7 @@ func (api *API) Summary(ctx context.Context, request SummaryRequestObject) (Summ
 		vertex := Vertex{
 			Key:     v.Key,
 			Label:   v.Label,
+			Class:   v.Class,
 			Healthy: v.Healthy,
 		}
 		summary.UnhealthyVertices = append(summary.UnhealthyVertices, vertex)
@@ -56,6 +57,7 @@ func (api *API) GetVertex(ctx context.Context, request GetVertexRequestObject) (
 	v := Vertex{
 		Key:     p.Key,
 		Label:   p.Label,
+		Class:   p.Class,
 		Healthy: p.Healthy,
 	}
 	return GetVertex200JSONResponse(v), nil
@@ -115,6 +117,7 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 		Principal: Vertex{
 			Key:     serviceSub.Principal.Key,
 			Label:   serviceSub.Principal.Label,
+			Class:   serviceSub.Principal.Class,
 			Healthy: serviceSub.Principal.Healthy,
 		},
 		Edges:      []Edge{},
@@ -134,6 +137,7 @@ func (api *API) GetVertexDependents(ctx context.Context, request GetVertexDepend
 		vertex := Vertex{
 			Key:     v.Key,
 			Label:   v.Label,
+			Class:   v.Class,
 			Healthy: v.Healthy,
 		}
 		sub.Vertices = append(sub.Vertices, vertex)
@@ -166,6 +170,7 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 		Principal: Vertex{
 			Key:     serviceSub.Principal.Key,
 			Label:   serviceSub.Principal.Label,
+			Class:   serviceSub.Principal.Class,
 			Healthy: serviceSub.Principal.Healthy,
 		},
 		Edges:      []Edge{},
@@ -186,6 +191,7 @@ func (api *API) GetVertexDependencies(ctx context.Context, request GetVertexDepe
 		vertex := Vertex{
 			Key:     v.Key,
 			Label:   v.Label,
+			Class:   v.Class,
 			Healthy: v.Healthy,
 		}
 		sub.Vertices = append(sub.Vertices, vertex)
@@ -220,6 +226,7 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 		Principal: Vertex{
 			Key:     p.Key,
 			Label:   p.Label,
+			Class:   p.Class,
 			Healthy: p.Healthy,
 		},
 		Edges:      []Edge{},
@@ -240,6 +247,7 @@ func (api *API) GetVertexNeighbors(ctx context.Context, request GetVertexNeighbo
 		vertex := Vertex{
 			Key:     v.Key,
 			Label:   v.Label,
+			Class:   v.Class,
 			Healthy: v.Healthy,
 		}
 		ss.Vertices = append(ss.Vertices, vertex)
@@ -266,6 +274,7 @@ func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetP
 		Principal: Vertex{
 			Key:     serviceSub.Principal.Key,
 			Label:   serviceSub.Principal.Label,
+			Class:   serviceSub.Principal.Class,
 			Healthy: serviceSub.Principal.Healthy,
 		},
 		Edges:      []Edge{},
@@ -286,6 +295,7 @@ func (api *API) GetPath(ctx context.Context, request GetPathRequestObject) (GetP
 		vertex := Vertex{
 			Key:     v.Key,
 			Label:   v.Label,
+			Class:   v.Class,
 			Healthy: v.Healthy,
 		}
 		sub.Vertices = append(sub.Vertices, vertex)
